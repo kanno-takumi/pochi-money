@@ -13,7 +13,7 @@ export async function createNewUser(formData: FormData) {
     // データベースへ保存
     await sql`
       INSERT INTO settings (key, value, user_id, user_name)
-      VALUES ('target_budget', 30000, ${uniqueId}, ${name})
+      VALUES ('target_budget', 10000, ${uniqueId}, ${name})
     `;
   } catch (e) {
     console.error("保存失敗:", e);
@@ -22,6 +22,26 @@ export async function createNewUser(formData: FormData) {
 
   // 💡 保存が成功した後、生成したIDのページへ飛ばす
   redirect(`/create/${uniqueId}`);
+}
+
+// app/actions.ts
+
+export async function updateWishList(userId: string, formData: FormData) {
+  const wishItem = formData.get("wishItem") as string;
+  const wishPrice = Number(formData.get("wishPrice"));
+
+  if (!wishItem || isNaN(wishPrice) || !userId) return;
+
+  try {
+    await sql`
+      UPDATE settings 
+      SET wish_item = ${wishItem}, wish_price = ${wishPrice}
+      WHERE user_id = ${userId} AND key = 'target_budget'
+    `;
+    revalidatePath(`/create/${userId}`);
+  } catch (e) {
+    console.error("欲しいもの更新失敗:", e);
+  }
 }
 
 const filePath = path.join(process.cwd(), "data", "savings.json");

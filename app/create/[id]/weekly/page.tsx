@@ -24,7 +24,7 @@ export default async function WeeklyRecords({ params }: { params: Promise<{ id: 
 
   return (
     <div className="min-h-screen bg-orange-50/30 pb-10">
-      <Header userImageUrl="/star.jpg" linkUrl={`/create/${id}`} />
+      <Header userImageUrl="/people.png" linkUrl={`/create/${id}`} />
       
       <main className="max-w-md mx-auto p-6">
         <div className="mb-6">

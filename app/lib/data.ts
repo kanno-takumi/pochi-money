@@ -15,7 +15,7 @@ export async function getDashboardData(userId: string) {
       // 初回アクセス時にDBにレコードを作成
       await sql`
         INSERT INTO settings (key, value, user_id)
-        VALUES ('target_budget', 30000, ${userId})
+        VALUES ('target_budget', 10000, ${userId})
         ON CONFLICT (key, user_id) DO NOTHING
       `;
       target = 30000;
