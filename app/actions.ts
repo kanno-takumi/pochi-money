@@ -4,6 +4,25 @@ import fs from "fs/promises";
 import path from "path";
 import { revalidatePath } from "next/cache";
 import sql from "./lib/db";
+import { redirect } from 'next/navigation';
+export async function createNewUser(formData: FormData) {
+  const name = formData.get("userName") as string;
+  const uniqueId = Math.random().toString(36).substring(2, 10); // 💡 これが ○○ になる
+
+  try {
+    // データベースへ保存
+    await sql`
+      INSERT INTO settings (key, value, user_id, user_name)
+      VALUES ('target_budget', 30000, ${uniqueId}, ${name})
+    `;
+  } catch (e) {
+    console.error("保存失敗:", e);
+    return; // エラー時はここで終了
+  }
+
+  // 💡 保存が成功した後、生成したIDのページへ飛ばす
+  redirect(`/create/${uniqueId}`);
+}
 
 const filePath = path.join(process.cwd(), "data", "savings.json");
 
