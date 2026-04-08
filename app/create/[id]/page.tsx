@@ -1,19 +1,12 @@
 import Header from "@/components/Header";
 import SavingCard from "@/components/SavingCard";
 import RecordForm from "@/components/RecordForm";
-import fs from "fs/promises";
-import path from "path";
-import { revalidatePath } from "next/cache";
+import sql from "@/app/lib/db"; // データベース接続をインポート
 import { updateTarget } from "@/app/actions";
 
 // --- サーバーサイド関数 ---
 
-async function getSavingsData() {
-  const filePath = path.join(process.cwd(), "data", "savings.json");
-  const jsonData = await fs.readFile(filePath, "utf-8");
-  return JSON.parse(jsonData);
-}
-
+// 週の開始日（月曜日）を計算
 function getStartOfThisWeek() {
   const now = new Date();
   const day = now.getDay(); 
@@ -29,27 +22,37 @@ export default async function Dashboard({
   params: Promise<{ id: string }> 
 }) {
   const { id } = await params;
-  const data = await getSavingsData();
 
-  
+  // 1. データベースからユーザー固有のデータを取得
+  // 目標金額の取得
+  const settings = await sql`
+    SELECT value FROM settings 
+    WHERE key = 'target_budget' AND user_id = ${id}
+  `;
+  const weeklyBudget = settings[0]?.value || 30000; // デフォルト 30,000円
+
+  // 今週の記録のみをDBから直接取得（効率的）
+  const startOfWeek = getStartOfThisWeek();
+  const weeklyRecords = await sql`
+    SELECT * FROM records 
+    WHERE user_id = ${id} AND date >= ${startOfWeek.toISOString()}
+  `;
 
   // 2. 計算ロジック
-  const weeklyBudget = data.target; 
   const dailyBudget = Math.floor(weeklyBudget / 7); 
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
-  const startOfWeek = getStartOfThisWeek();
 
-  const weeklyRecords = data.records.filter((r: any) => {
-    const recordDate = new Date(r.date);
-    return recordDate >= startOfWeek;
-  });
-
+  // 今日の出費合計
   const actualSpentToday = weeklyRecords
-    .filter((r: any) => r.date === todayStr)
+    .filter((r: any) => {
+      const rDate = r.date instanceof Date ? r.date.toISOString().split('T')[0] : r.date;
+      return rDate === todayStr;
+    })
     .reduce((sum: number, r: any) => sum + r.amount, 0);
 
-  const actualSpentWeek = weeklyRecords.reduce((sum: number, r: any) => sum + r.amount, 0);
+  // 今週の出費合計
+  const actualSpentWeek = weeklyRecords.reduce((sum: number, r: any) => sum + Number(r.amount), 0);
 
   const remainingWeekly = weeklyBudget - actualSpentWeek;
   const remainingToday = dailyBudget - actualSpentToday;
@@ -66,7 +69,11 @@ export default async function Dashboard({
         <div className="mb-8 text-center">
           <h2 className="text-xl font-black text-gray-800 mb-1">あなたの節約</h2>
           
-          <form action={updateTarget} className="mt-3 flex flex-col items-center gap-2">
+          {/* actionにidを渡すためにbindを使用 */}
+          <form 
+            action={updateTarget.bind(null, id)} 
+            className="mt-3 flex flex-col items-center gap-2"
+          >
             <div className="flex items-center bg-white border border-orange-200 rounded-full px-4 py-1.5 shadow-sm">
               <span className="text-gray-500 text-xs font-bold mr-2">今週の目標:</span>
               <input 
@@ -101,9 +108,10 @@ export default async function Dashboard({
         {/* 記録フォーム */}
         <section className="mt-10">
           <h2 className="text-sm font-bold text-gray-400 mb-3 ml-1 uppercase tracking-wider">
-            節約を記録する
+            使った額を記録する
           </h2>
-          <RecordForm />
+          {/* 保存時に誰のデータか特定するためにidを渡す */}
+          <RecordForm userId={id} />
         </section>
       </main>
     </div>

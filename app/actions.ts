@@ -3,6 +3,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { revalidatePath } from "next/cache";
+import sql from "./lib/db";
 
 const filePath = path.join(process.cwd(), "data", "savings.json");
 
@@ -21,52 +22,56 @@ async function saveData(data: any) {
 
 /**
  * 目標金額を更新する
- */
-export async function updateTarget(arg: FormData | number) {
-  let newTarget: number;
+ // app/actions.ts
 
+/**
+ * 目標金額を更新する
+ */
+export async function updateTarget(userId: string, arg: FormData | number) {
+  let newTarget: number;
   if (typeof arg === "number") {
-    // TargetSetter.tsx から直接数値が送られてきた場合
     newTarget = arg;
   } else {
-    // <form action={updateTarget}> から FormData が送られてきた場合
     newTarget = Number(arg.get("targetAmount"));
   }
 
-  if (isNaN(newTarget) || newTarget <= 0) return;
+  if (isNaN(newTarget) || newTarget <= 0 || !userId) return;
 
   try {
-    const data = await readData();
-    data.target = newTarget;
-    await saveData(data);
-    revalidatePath("/", "layout");
+    // 💡 UPSERT文 (ON CONFLICT) を使う
+    await sql`
+      INSERT INTO settings (key, value, user_id)
+      VALUES ('target_budget', ${newTarget}, ${userId})
+      ON CONFLICT (key, user_id) 
+      DO UPDATE SET value = EXCLUDED.value
+    `;
+    
+    // 画面のキャッシュをクリアして最新データを表示させる
+    revalidatePath(`/create/${userId}`);
   } catch (e) {
     console.error("目標更新失敗:", e);
   }
 }
-
 /**
  * 節約記録を追加する
  */
-export async function addRecord(formData: FormData) {
+export async function addRecord(userId: string, formData: FormData) {
   const amount = Number(formData.get("amount"));
   const item = formData.get("item") as string;
   
-  if (!amount || !item) return;
+  if (!amount || !item || !userId) {
+    console.error("データが足りません:", { amount, item, userId });
+    return;
+  }
 
   try {
-    const data = await readData();
+    await sql`
+      INSERT INTO records (item, amount, user_id, date)
+      VALUES (${item}, ${amount}, ${userId}, CURRENT_DATE)
+    `;
     
-    const newRecord = {
-      id: data.records.length > 0 ? Math.max(...data.records.map((r: any) => r.id)) + 1 : 1,
-      amount: amount,
-      item: item,
-      date: new Date().toISOString().split('T')[0] // 今日の日付 (YYYY-MM-DD)
-    };
-
-    data.records.unshift(newRecord); // 配列の先頭に追加
-    await saveData(data);
-    revalidatePath("/", "layout"); // 画面を更新
+    // 画面を更新して、追加した記録を即座に表示させる
+    revalidatePath(`/create/${userId}`);
   } catch (e) {
     console.error("記録追加失敗:", e);
   }

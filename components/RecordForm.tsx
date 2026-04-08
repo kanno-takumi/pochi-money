@@ -28,27 +28,30 @@
 //     </div>
 //   );
 // }
-
 "use client";
 
 import { addRecord } from "@/app/actions";
 import { useRef } from "react";
 
-export default function RecordForm() {
+// userId を受け取るように定義
+export default function RecordForm({ userId }: { userId: string }) {
   const formRef = useRef<HTMLFormElement>(null);
 
   // 送信ボタンを押した後の挙動
   const handleSubmit = async (formData: FormData) => {
-    await addRecord(formData);
+    // 💡 userId を第1引数、formData を第2引数として渡す
+    await addRecord(userId, formData);
     formRef.current?.reset(); // 入力欄をピカピカにする
   };
 
   return (
     <form 
       ref={formRef}
+      // Next.jsの action に handleSubmit を指定
       action={handleSubmit} 
       className="bg-white p-6 rounded-[32px] shadow-sm border border-orange-100 space-y-4"
     >
+      {/* --- UIは一切変更なし --- */}
       <div>
         <label className="block text-[10px] font-bold text-gray-400 mb-1 ml-1 uppercase">内容</label>
         <input
