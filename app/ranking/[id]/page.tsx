@@ -1,6 +1,6 @@
 import React from 'react';
 import Header from "@/components/Header";
-import sql from '@/app/lib/db'; // 直接DBから取得する場合
+import sql from '@/app/lib/db';
 
 export default async function RankingPage({ 
   params 
@@ -9,15 +9,17 @@ export default async function RankingPage({
 }) {
   const { id } = await params;
 
-  // 1. 全ユーザーの目標設定と出費データを取得
+  // 1. 全ユーザーの目標設定（名前も含む）と出費データを取得
   const [settings, records] = await Promise.all([
-    sql`SELECT user_id, value FROM settings WHERE key = 'target_budget'`,
+    // 💡 user_name も取得するように追加
+    sql`SELECT user_id, user_name, value FROM settings WHERE key = 'target_budget'`,
     sql`SELECT user_id, amount FROM records`
   ]);
 
   // 2. ユーザーごとに節約額を計算してランキングを作成
   const rankingData = settings.map((s) => {
     const userId = s.user_id;
+    const userName = s.user_name || "ななしさん"; // 💡 名前を表示用に使用
     const target = Number(s.value);
     
     // そのユーザーの合計利用額
@@ -25,14 +27,14 @@ export default async function RankingPage({
       .filter((r) => r.user_id === userId)
       .reduce((sum, r) => sum + Number(r.amount), 0);
     
-    // 記録回数
     const count = records.filter((r) => r.user_id === userId).length;
 
     return {
       userId,
-      amount: target - totalSpent, // 節約額 = 目標 - 利用額
+      userName, // 💡 オブジェクトに名前を追加
+      amount: target - totalSpent,
       count,
-      avatar: userId === id ? '✨' : '👤', // 自分ならキラキラ、他人は人影
+      avatar: userId === id ? '✨' : '👤',
     };
   });
 
@@ -78,12 +80,12 @@ export default async function RankingPage({
                 {user.avatar}
               </div>
 
-              {/* ユーザー名と回数 */}
+              {/* ユーザー名 */}
               <div className="flex-1">
                 <p className="font-bold text-gray-800 text-lg">
-                  {user.userId} {user.userId === id && "(あなた)"}
+                  {/* 💡 user.userId ではなく user.userName を表示 */}
+                  {user.userName} {user.userId === id && "(あなた)"}
                 </p>
-                {/* <p className="text-xs text-gray-400">{user.count} 回のポチ記録</p> */}
               </div>
 
               {/* 節約額 */}
