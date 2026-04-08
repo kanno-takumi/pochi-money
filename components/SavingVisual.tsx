@@ -3,7 +3,7 @@
 import React from "react";
 
 const UNITS = [
-  { id: "disney",    price: 10000, img: "/disney.png" },
+  { id: "plain",    price: 10000, img: "/plain.png" },
   { id: "yakiniku",  price: 5000,  img: "/yakiniku.png" },
   { id: "curry",     price: 1000,  img: "/curry.png" },
   { id: "coffee",    price: 500,   img: "/coffee.png" },
