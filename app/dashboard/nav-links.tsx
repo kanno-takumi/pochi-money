@@ -12,7 +12,7 @@ import clsx from 'clsx';
 export default function NavLinks() {
   return (
     <>
-      {links.map((link) => {
+      {links?.map((link) => {
         const LinkIcon = link.icon;
         // const pathname = usePathname();
         return (

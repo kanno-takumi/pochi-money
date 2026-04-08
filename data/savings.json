@@ -1,6 +1,12 @@
 {
-  "target": 10000,
+  "target": 20000,
   "records": [
+    {
+      "id": 9,
+      "amount": 2000,
+      "item": "焼肉",
+      "date": "2026-04-08"
+    },
     {
       "id": 8,
       "amount": 300,
