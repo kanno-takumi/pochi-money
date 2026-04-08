@@ -93,17 +93,19 @@ export default async function Dashboard({
           </form>
         </div>
 
-        {/* 予算表示カード */}
-        <div className="space-y-4">
-          <SavingCard 
-            label="今日の残り枠" 
-            amount={remainingToday} 
-          />
-          <SavingCard 
-            label="今週の残り枠" 
-            amount={remainingWeekly} 
-          />
-        </div>
+       {/* 予算表示カードを縦に配置 */}
+<div className="flex flex-col gap-4 w-full px-2">
+  <SavingCard 
+    label="今日の残り枠" 
+    amount={remainingToday} 
+    href={`/create/${id}/today`}
+  />
+  <SavingCard 
+    label="今週の残り枠" 
+    amount={remainingWeekly} 
+    href={`/create/${id}/weekly`}
+  />
+</div>
 
         {/* 記録フォーム */}
         <section className="mt-10">

@@ -45,3 +45,39 @@ export async function getDashboardData(userId: string) {
     return { target: 10000, records: [] };
   }
 }
+
+export async function getRankingData() {
+  try {
+    // 1. 全ユーザーの目標設定と出費記録を取得
+    const [allSettings, allRecords] = await Promise.all([
+      sql`SELECT user_id, value FROM settings WHERE key = 'target_budget'`,
+      sql`SELECT user_id, amount FROM records`
+    ]);
+
+    // 2. ユーザーごとにデータを集計
+    const userStats = allSettings.map((setting) => {
+      const userId = setting.user_id;
+      const target = Number(setting.value);
+      
+      // そのユーザーの出費を合計
+      const totalSpent = allRecords
+        .filter((r) => r.user_id === userId)
+        .reduce((sum, r) => sum + Number(r.amount), 0);
+
+      const savings = target - totalSpent;
+
+      return {
+        userId,
+        target,
+        totalSpent,
+        savings,
+      };
+    });
+
+    // 3. 節約額（savings）が大きい順にソート
+    return userStats.sort((a, b) => b.savings - a.savings);
+  } catch (error) {
+    console.error('Ranking Error:', error);
+    return [];
+  }
+}
