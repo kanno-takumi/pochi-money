@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react"; // useEffectを追加
-import { updateTargetBudget } from "@/app/actions";
+import { updateTarget } from "@/app/actions";
 import { useRouter } from "next/navigation"; // ルーターを追加
 
 export default function TargetSetter({ initialTarget }: { initialTarget: number }) {
@@ -16,7 +16,7 @@ export default function TargetSetter({ initialTarget }: { initialTarget: number 
 
   const handleSave = async () => {
     try {
-      await updateTargetBudget(Number(value));
+      await updateTarget(Number(value));
       setIsEditing(false);
       // サーバー側のデータを再取得して画面を更新する
       router.refresh(); 

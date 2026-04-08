@@ -17,18 +17,29 @@ async function saveData(data: any) {
   await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
 }
 
+// app/actions.ts (該当箇所のみ)
+
 /**
  * 目標金額を更新する
  */
-export async function updateTarget(formData: FormData) {
-  const newTarget = Number(formData.get("targetAmount"));
+export async function updateTarget(arg: FormData | number) {
+  let newTarget: number;
+
+  if (typeof arg === "number") {
+    // TargetSetter.tsx から直接数値が送られてきた場合
+    newTarget = arg;
+  } else {
+    // <form action={updateTarget}> から FormData が送られてきた場合
+    newTarget = Number(arg.get("targetAmount"));
+  }
+
   if (isNaN(newTarget) || newTarget <= 0) return;
 
   try {
     const data = await readData();
     data.target = newTarget;
     await saveData(data);
-    revalidatePath("/", "layout"); // 画面を更新
+    revalidatePath("/", "layout");
   } catch (e) {
     console.error("目標更新失敗:", e);
   }
