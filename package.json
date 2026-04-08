@@ -29,6 +29,7 @@
     "@types/react-dom": "19.0.3"
   },
   "pnpm": {
+    "patchedDependencies": {},
     "onlyBuiltDependencies": [
       "bcrypt",
       "sharp"
