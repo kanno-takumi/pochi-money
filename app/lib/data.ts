@@ -3,24 +3,27 @@ import sql from '@/app/lib/db';
 export async function getDashboardData(userId: string) {
   try {
     // 1. 目標金額を取得
-    let settings = await sql`
+    const settings = await sql`
       SELECT value FROM settings 
       WHERE key = 'target_budget' AND user_id = ${userId}
     `;
 
-    // --- 💡 初めてのユーザーなら初期設定をDBに作成する ---
-    if (settings.length === 0) {
+    let target: number;
+
+    // データがない場合の処理をより確実に
+    if (!settings || settings.length === 0) {
+      // 初回アクセス時にDBにレコードを作成
       await sql`
         INSERT INTO settings (key, value, user_id)
         VALUES ('target_budget', 30000, ${userId})
+        ON CONFLICT (key, user_id) DO NOTHING
       `;
-      // settings を初期値で上書き
-      settings = [{ value: 30000 }];
+      target = 30000;
+    } else {
+      target = Number(settings[0].value);
     }
 
-    const target = settings[0].value;
-
-    // 2. そのユーザーの節約記録を取得
+    // 2. そのユーザーの「使った額（出費）」の全記録を取得
     const records = await sql`
       SELECT id, amount, item, date 
       FROM records 
@@ -28,10 +31,17 @@ export async function getDashboardData(userId: string) {
       ORDER BY date DESC, id DESC
     `;
 
-    return { target, records };
+    // 金額(amount)が文字列で返ってくる場合があるため、数値に変換しておく
+    const formattedRecords = records.map(r => ({
+      ...r,
+      amount: Number(r.amount)
+    }));
+
+    return { target, records: formattedRecords };
+
   } catch (error) {
     console.error('Database Error:', error);
-    // エラー時はフォールバックデータを返す
-    return { target: 30000, records: [] };
+    // 最悪の事態でもアプリを止めないための初期値
+    return { target: 10000, records: [] };
   }
 }
